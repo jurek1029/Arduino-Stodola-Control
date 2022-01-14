@@ -3,7 +3,7 @@
 #include <ESP8266WebServer.h>
 #include "DHT.h"
 #include "index.h"
-#include "loginPage.h";
+#include "loginPage.h"
 
 #ifndef STASSID
 #define STASSID "Trollol"
@@ -61,19 +61,27 @@ void handleLogin() {
     server.send(301);
     return;
   }
-  if (server.hasArg("user") && server.hasArg("psw")) {
-    if (server.arg("user") == "kuba" &&  server.arg("psw") == "admin") {
-      server.sendHeader("Location", "/");
-      server.sendHeader("Cache-Control", "no-cache");
-      server.sendHeader("Set-Cookie", "ESPSESSIONID=1");
-      server.send(301);
-      Serial.println("Log in Successful");
-      return;
-    }
-    Serial.println("Log in Failed");
-  }
-  
   server.send(200, "text/html", LOGIN_page);
+}
+
+void handleLoginValidate(){
+  if (!server.hasArg("user") || !server.hasArg("psw")) {
+    server.send(200, "text/plane", "failed no args"); 
+    return;
+  }
+  if (server.arg("user") == "kuba" &&  server.arg("psw") == "admin") {
+    
+    server.sendHeader("Location", "/");
+    server.sendHeader("Cache-Control", "no-cache");
+    server.sendHeader("Set-Cookie", "ESPSESSIONID=1");
+    server.send(301);
+    Serial.println("Log in Successful");
+
+    server.send(200, "text/plane", "loged in"); 
+    return;
+  }
+  Serial.println("Log in Failed");
+  server.send(200, "text/plane", "failed"); 
 }
 
 //root page can be accessed only if authentication is ok
@@ -154,6 +162,7 @@ void setup(void) {
 
   server.on("/", handleRoot);
   server.on("/login", handleLogin);
+  server.on("/loginValidate", handleLoginValidate);
   server.on("/setHeat", handleHeating);
   server.on("/readtemp", []() {server.send(200, "text/plane", String(t));});
   server.on("/readhumi", []() {server.send(200, "text/plane", String(h));});

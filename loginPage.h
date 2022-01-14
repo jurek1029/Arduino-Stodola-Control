@@ -65,7 +65,7 @@ const char LOGIN_page[] PROGMEM = R"=====(
 	</head>
 <body>
 		<div class="box">
-			<form action='/login' method='POST'>
+			<form id="LoginForm" onsubmit="return false">
 			
 				<div class="bigT"><b>Login in to Stodo&#322;a Center</b><br> </div>
 
@@ -76,9 +76,41 @@ const char LOGIN_page[] PROGMEM = R"=====(
 				<input type="password" placeholder="Enter Password" name="psw" required>
 
 				<button type="submit" class="button">Login</button>
-				
+				<div id="msg" style="text-align: center;color:red;display:none;">Wrong password or login</div><br>
 			</form>
 		</div>
+
+<script>
+	window.addEventListener("load", function() {
+		var loginForm = document.getElementById("LoginForm");
+		loginForm.addEventListener("submit", function() {
+			 login(loginForm);
+		 });
+	 });
+	 
+	 function login(form) {
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", "loginValidate", true);
+		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				var msg = document.getElementById("msg");
+				if (xhr.responseText.indexOf("failed") != -1) {
+					msg.style.display = "block";
+					form.user.select();
+					form.user.className = "Highlighted";
+					setTimeout(function() {
+						msg.style.display = 'none';
+					}, 3000);
+				}
+				else{
+					window.location.replace("/");
+				}
+			}
+		}
+		xhr.send("user="+form.user.value+"&psw="+form.psw.value);
+	}
+</script>
 
 </body>
 </html>
