@@ -4,7 +4,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 	<head>
 		<style> 
 			body {
-			   background-image: url('https://static-ca-cdn.eporner.com/gallery/VX/lQ/4xOAsfDlQVX/253003-janice-griffith-nude.jpg'); font-size:3vh 
+			    font-size:3vh 
 			}
 			html { 
 				font-family: Helvetica;
@@ -53,7 +53,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 				z-index: -99;
 			}
 			.video-foreground,
-			.video-background iframe {
+			.video-background video {
 				position: absolute;
 				top: 0;
 				left: 0;
@@ -87,8 +87,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 	</head>
 	<body>
 		<div class="video-background">
-			<div class="video-foreground">
-				<div id="player"></div>
+			<div class="video-foreground" id="vid">
 			</div>
 		</div>
 	
@@ -111,32 +110,15 @@ const char MAIN_page[] PROGMEM = R"=====(
 		<button class='button' onclick="sendData(0)"> Turn OFF </button>
 		
 		<script>
-			var tag = document.createElement('script');
-			tag.src = "https://www.youtube.com/iframe_api";
-			var firstScriptTag = document.getElementsByTagName('script')[0];
-			firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-			var player;
-			function onYouTubeIframeAPIReady() {
-			player = new YT.Player('player', {
-			  videoId: '6ksVdlXP4BI',
-			  playerVars:{
-				"controls" : 0,
-				"showinfo":0,
-				"rel":0,
-				"autoplay":1,
-				"loop":1,
-				"mute":1,
-				"playlist":"6ksVdlXP4BI"
-			  },
-			  events: {
-				'onReady': onPlayerReady
-			  }
-			});
-			}
-			function onPlayerReady(event) {
-				event.target.playVideo();
-			}
+			var video = document.createElement('video');
+			var t = Math.floor(Math.random() * 1663);
+			video.src = "https://www.dropbox.com/s/9noro6gvmkvdohg/No-Audio.mp4?raw=1#t="+t;
+			video.autoplay = true;
+			video.controls = false;
+			video.muted = true;
+			video.loop = true;
+			
+			document.getElementById("vid").appendChild(video);
 			
 			function sendData(led) {
 				var xhttp = new XMLHttpRequest();

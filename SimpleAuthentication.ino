@@ -26,6 +26,13 @@ bool isHeatTimer = false;
 float h = 0,t = 0;
 String heatingState = "OFF";
 
+IPAddress local_IP(192, 168, 1, 100);
+IPAddress gateway(192, 168, 1, 1);
+
+IPAddress subnet(255, 255, 0, 0);
+IPAddress primaryDNS(8, 8, 8, 8);   //optional
+IPAddress secondaryDNS(1, 1, 1, 1); //optional
+
 DHT dht(PIN_DTH, DHTTYPE);
 ESP8266WebServer server(80);
 
@@ -144,7 +151,11 @@ void setup(void) {
 
   dht.begin();
 
-  WiFi.mode(WIFI_STA);
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+      Serial.println("STA Failed to configure");
+  }
+
+  //WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   Serial.println("");
 
