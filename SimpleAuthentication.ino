@@ -6,8 +6,10 @@
 #include "loginPage.h"
 
 #ifndef STASSID
-#define STASSID "Trollol"
-#define STAPSK  "asiaKUBAmartyna"
+#define STASSID "NC+ INTERNET 4G LTE C16D"
+#define STAPSK  "RXM9P8CL8"
+#define STASSID2 "Trollol"
+#define STAPSK2  "asiaKUBAmartyna"
 #endif
 
 #define DHTTYPE DHT11 
@@ -26,7 +28,8 @@ bool isHeatTimer = false;
 float h = 0,t = 0;
 String heatingState = "OFF";
 
-IPAddress local_IP(192, 168, 1, 100);
+IPAddress local_IP2(192, 168, 1, 100);
+IPAddress local_IP(192, 168, 2, 100);
 IPAddress gateway(192, 168, 1, 1);
 
 IPAddress subnet(255, 255, 0, 0);
@@ -158,17 +161,26 @@ void setup(void) {
   //WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   Serial.println("");
-
+  int trys = 8;
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
+    if(trys-- == 0 ){
+      Serial.print("\n connecting to :");
+      Serial.print(STASSID2);
+      WiFi.config(local_IP2, gateway, subnet, primaryDNS, secondaryDNS);
+      WiFi.begin(STASSID2, STAPSK2);
+    }
   }
   Serial.println("");
   Serial.print("Connected to ");
   Serial.println(ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(true);
 
 
   server.on("/", handleRoot);
