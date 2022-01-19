@@ -1,13 +1,12 @@
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
-#include <ESP8266WebServer.h>
+#define WEBSERVER_H //to avoid  duplicated definisions in WifiManager and AsyncWebServer
+#include <WiFiManager.h>  
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
 #include <DNSServer.h>
-#include <WiFiManager.h>  
+
 
 #include "DHT.h"
 #include "index.h"
@@ -28,15 +27,16 @@ float h = 0,t = 0;
 String heatingState = "OFF";
 
 DHT dht(PIN_DTH, DHTTYPE);
-ESP8266WebServer server(80);
+AsyncWebServer server(80);
+//ESP8266WebServer server(80);
 WiFiManager wifiManager;
 
 //Check if header is present and correct
-bool is_authenticated() {
+bool is_authenticated(AsyncWebServerRequest *request) {
   Serial.println("Enter is_authenticated");
-  if (server.hasHeader("Cookie")) {
+  if (request->hasHeader("Cookie")) {
     Serial.print("Found cookie: ");
-    String cookie = server.header("Cookie");
+    String cookie = request->header("Cookie");
     Serial.println(cookie);
     if (cookie.indexOf("ESPSESSIONID=1") != -1) {
       Serial.println("Authentication Successful");
@@ -48,63 +48,65 @@ bool is_authenticated() {
 }
 
 //login page, also called for disconnect
-void handleLogin() {
+void handleLogin(AsyncWebServerRequest *request) {
   String msg;
-  if (server.hasHeader("Cookie")) {
+  if (request->hasHeader("Cookie")) {
     Serial.print("Found cookie: ");
-    String cookie = server.header("Cookie");
+    String cookie = request->header("Cookie");
     Serial.println(cookie);
   }
-  if (server.hasArg("DISCONNECT")) {
+  if (request->hasArg("DISCONNECT")) {
     Serial.println("Disconnection");
-    server.sendHeader("Location", "/login");
-    server.sendHeader("Cache-Control", "no-cache");
-    server.sendHeader("Set-Cookie", "ESPSESSIONID=0");
-    server.send(301);
+    AsyncWebServerResponse *response = request->beginResponse(301);
+    response->addHeader("Location", "/login");
+    response->addHeader("Cache-Control", "no-cache");
+    response->addHeader("Set-Cookie", "ESPSESSIONID=0");
+    request->send(response);
     return;
   }
-  server.send(200, "text/html", LOGIN_page);
+  request->send_P(200, "text/html", LOGIN_page);
 }
 
-void handleLoginValidate(){
-  if (!server.hasArg("user") || !server.hasArg("psw")) {
-    server.send(200, "text/plane", "failed no args"); 
+void handleLoginValidate(AsyncWebServerRequest *request){
+  if (!request->hasArg("user") || !request->hasArg("psw")) {
+    request->send(200, "text/plane", "failed no args"); 
     return;
   }
-  if (server.arg("user") == "kuba" &&  server.arg("psw") == "admin") {
-    
-    server.sendHeader("Location", "/");
-    server.sendHeader("Cache-Control", "no-cache");
-    server.sendHeader("Set-Cookie", "ESPSESSIONID=1");
-    server.send(301);
-    Serial.println("Log in Successful");
+  if (request->arg("user") == "kuba" &&  request->arg("psw") == "admin") {
+    AsyncWebServerResponse *response = request->beginResponse(301);
+    response->addHeader("Location", "/");
+    response->addHeader("Cache-Control", "no-cache");
+    response->addHeader("Set-Cookie", "ESPSESSIONID=1");
+    request->send(response);
 
-    server.send(200, "text/plane", "loged in"); 
+    Serial.println("Log in Successful");
+    request->send(200, "text/plane", "loged in"); 
     return;
   }
   Serial.println("Log in Failed");
-  server.send(200, "text/plane", "failed"); 
+  request->send(200, "text/plane", "failed"); 
 }
 
 //root page can be accessed only if authentication is ok
-void handleRoot() {
+void handleRoot(AsyncWebServerRequest *request) {
   Serial.println("Enter handleRoot");
   String header;
-  if (!is_authenticated()) {
-    server.sendHeader("Location", "/login");
-    server.sendHeader("Cache-Control", "no-cache");
-    server.send(301);
+  if (!is_authenticated(request)) {
+    //request->redirect("/login");
+    AsyncWebServerResponse *response = request->beginResponse(301);
+    response->addHeader("Location", "/login");
+    response->addHeader("Cache-Control", "no-cache");
+    request->send(response);
     return;
   }
 
-  String s = MAIN_page; //Read HTML contents
-  server.send(200, "text/html", s); //Send web page
+  request->send_P(200, "text/html", MAIN_page); //Send web page
 
 }
 
-void handleHeating() {
-  if(!server.hasArg("state")) return;
-  String state = server.arg("state"); 
+void handleHeating(AsyncWebServerRequest *request) {
+  if(!request->hasArg("state")) return;
+  String state = request->arg("state"); 
   Serial.println(state);
   if(state == "1") {
     digitalWrite(PIN_RELAY, HIGH); //LED ON
@@ -117,23 +119,23 @@ void handleHeating() {
     isHeatTimer = false;
     heatingState = "OFF"; //Feedback parameter  
   }
-  server.send(200, "text/plane", heatingState); 
+  request->send(200, "text/plane", heatingState); 
 }
 
 //no need authentication
-void handleNotFound() {
+void handleNotFound(AsyncWebServerRequest *request) {
   String message = "File Not Found\n\n";
   message += "URI: ";
-  message += server.uri();
+  message += request->url();
   message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += (request->method() == HTTP_GET) ? "GET" : "POST";
   message += "\nArguments: ";
-  message += server.args();
+  message += request->args();
   message += "\n";
-  for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  for (uint8_t i = 0; i < request->args(); i++) {
+    message += " " + request->argName(i) + ": " + request->arg(i) + "\n";
   }
-  server.send(404, "text/plain", message);
+  request->send(404, "text/plain", message);
 }
 
 void setupArduinoOTAUpdate(){
@@ -168,28 +170,6 @@ void setup(void) {
 
   dht.begin();
 
-  /*if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-      Serial.println("STA Failed to configure");
-  }
-
-  //WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.println("");
-  Serial.println("Updated over the internet");
-  int trys = 12;
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-    if(trys-- == 0 ){
-      Serial.print("\n connecting to :");
-      Serial.print(STASSID2);
-      WiFi.config(local_IP2, gateway, subnet, primaryDNS, secondaryDNS);
-      WiFi.begin(STASSID2, STAPSK2);
-    }
-  }
-*/
-  
   // Uncomment and run it once, if you want to erase all the stored information
   //wifiManager.resetSettings();
   // set custom ip for portal
@@ -198,14 +178,11 @@ void setup(void) {
   wifiManager.autoConnect("AutoConnectAP");
 
   Serial.println("");
+  Serial.println("AsyncServer");
   Serial.print("Connected to ");
   Serial.println(wifiManager.getWiFiSSID(true));
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
-
-  //This is taken care of in WifiManager
- //WiFi.setAutoReconnect(true);
- //WiFi.persistent(true);
 
   setupArduinoOTAUpdate();
 
@@ -214,28 +191,25 @@ void setup(void) {
   server.on("/login", handleLogin);
   server.on("/loginValidate", handleLoginValidate);
   server.on("/setHeat", handleHeating);
-  server.on("/readtemp", []() {server.send(200, "text/plane", String(t));});
-  server.on("/readhumi", []() {server.send(200, "text/plane", String(h));});
-  server.on("/readheatIndex", []() {
-    server.send(200, "text/plane", String(dht.computeHeatIndex(t, h, false)));
+  server.on("/readtemp", [](AsyncWebServerRequest *request) {request->send(200, "text/plane", String(t));});
+  server.on("/readhumi", [](AsyncWebServerRequest *request) {request->send(200, "text/plane", String(h));});
+  server.on("/readheatIndex", [](AsyncWebServerRequest *request) {
+    request->send(200, "text/plane", String(dht.computeHeatIndex(t, h, false)));
     });
-  server.on("/readheating", []() {server.send(200, "text/plane", heatingState);});
-  server.on("/readTimer", []() {
+  server.on("/readheating", [](AsyncWebServerRequest *request) {request->send(200, "text/plane", heatingState);});
+  server.on("/readTimer", [](AsyncWebServerRequest *request) {
     if((millis() - lastHeatON) <= MAX_HEAT_TIME && isHeatTimer){
-      server.send(200, "text/plane", String( MAX_HEAT_TIME - millis() + lastHeatON));
+      request->send(200, "text/plane", String( MAX_HEAT_TIME - millis() + lastHeatON));
     }
     else{
-      server.send(200, "text/plane", "100");
+      request->send(200, "text/plane", "100");
     }
     });
-  /*server.on("/inline", []() {
-    server.send(200, "text/plain", "this works without need of authentication");
-  });
-  */
+
 
   server.onNotFound(handleNotFound);
   //ask server to track these headers
-  server.collectHeaders("User-Agent", "Cookie");
+  //server.collectHeaders("User-Agent", "Cookie");
   server.begin();
   Serial.println("HTTP server started");
   
@@ -243,7 +217,7 @@ void setup(void) {
 
 void loop(void) {
   ArduinoOTA.handle();
-  server.handleClient();
+  //server.handleClient();
 
   if((millis() - lastDTHRead) > DTH_READ_DELAY){
     h = dht.readHumidity();
