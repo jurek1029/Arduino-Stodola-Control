@@ -1,16 +1,18 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
+
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+
+#include <DNSServer.h>
+#include <WiFiManager.h>  
+
 #include "DHT.h"
 #include "index.h"
 #include "loginPage.h"
 
-#ifndef STASSID
-#define STASSID "NC+ INTERNET 4G LTE C16D"
-#define STAPSK  "RXM9P8CL8"
-#define STASSID2 "Trollol"
-#define STAPSK2  "asiaKUBAmartyna"
-#endif
 
 #define DHTTYPE DHT11 
 #define PIN_RELAY 5
@@ -19,25 +21,15 @@
 #define DTH_READ_DELAY 2000 // in milisec
 #define MAX_HEAT_TIME 3600000 
 
-const char* ssid = STASSID;
-const char* password = STAPSK;
-
 int val = 0;
 unsigned long lastDTHRead, lastHeatON;
 bool isHeatTimer = false;
 float h = 0,t = 0;
 String heatingState = "OFF";
 
-IPAddress local_IP2(192, 168, 1, 100);
-IPAddress local_IP(192, 168, 2, 100);
-IPAddress gateway(192, 168, 1, 1);
-
-IPAddress subnet(255, 255, 0, 0);
-IPAddress primaryDNS(8, 8, 8, 8);   //optional
-IPAddress secondaryDNS(1, 1, 1, 1); //optional
-
 DHT dht(PIN_DTH, DHTTYPE);
 ESP8266WebServer server(80);
+WiFiManager wifiManager;
 
 //Check if header is present and correct
 bool is_authenticated() {
@@ -144,9 +136,31 @@ void handleNotFound() {
   server.send(404, "text/plain", message);
 }
 
+void setupArduinoOTAUpdate(){
+  ArduinoOTA.onStart([]() {
+    Serial.println("Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\n", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+}
+
+
 void setup(void) {
   Serial.begin(115200);
-
+  
   // prepare Relay and turn off by default
   pinMode(PIN_RELAY, OUTPUT);
   digitalWrite(PIN_RELAY, 0);
@@ -154,14 +168,15 @@ void setup(void) {
 
   dht.begin();
 
-  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+  /*if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
       Serial.println("STA Failed to configure");
   }
 
   //WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   Serial.println("");
-  int trys = 8;
+  Serial.println("Updated over the internet");
+  int trys = 12;
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -173,14 +188,26 @@ void setup(void) {
       WiFi.begin(STASSID2, STAPSK2);
     }
   }
+*/
+  
+  // Uncomment and run it once, if you want to erase all the stored information
+  //wifiManager.resetSettings();
+  // set custom ip for portal
+  //wifiManager.setAPConfig(IPAddress(10,0,1,1), IPAddress(10,0,1,1), IPAddress(255,255,255,0)); 
+  //wifiManager.setSTAStaticIPConfig(IPAddress(192,168,0,150), IPAddress(192,168,0,1), IPAddress(255,255,255,0)); // optional DNS 4th argument
+  wifiManager.autoConnect("AutoConnectAP");
+
   Serial.println("");
   Serial.print("Connected to ");
-  Serial.println(ssid);
+  Serial.println(wifiManager.getWiFiSSID(true));
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
-  WiFi.setAutoReconnect(true);
-  WiFi.persistent(true);
+  //This is taken care of in WifiManager
+ //WiFi.setAutoReconnect(true);
+ //WiFi.persistent(true);
+
+  setupArduinoOTAUpdate();
 
 
   server.on("/", handleRoot);
@@ -215,6 +242,7 @@ void setup(void) {
 }
 
 void loop(void) {
+  ArduinoOTA.handle();
   server.handleClient();
 
   if((millis() - lastDTHRead) > DTH_READ_DELAY){
