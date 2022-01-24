@@ -3,12 +3,12 @@
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
-//#include <AsyncElegantOTA.h>
+#include <AsyncElegantOTA.h>
 
 //Debug option can be removed to see serial output connect to "/webserial"
 //#include <WebSerial.h>
 
-#include <ArduinoOTA.h>
+//#include <ArduinoOTA.h>
 
 
 #include <DHT_U.h>
@@ -180,6 +180,7 @@ void setupWebServer(){
   Serial.println("HTTP server started");
 }
 
+/*
 void setupOTA(){
   ArduinoOTA.onStart([]() {
     String type;
@@ -215,6 +216,8 @@ void setupOTA(){
   ArduinoOTA.begin();
 }
 
+*/
+
 void setup(void) {
   Serial.begin(115200);
   
@@ -226,17 +229,18 @@ void setup(void) {
   dht.begin();
 
   setupWiFi();
-  setupOTA();
+  //setupOTA();
+  AsyncElegantOTA.begin(&server);    // Start ElegantOTA
   setupWebServer();
 
-  //AsyncElegantOTA.begin(&server);    // Start ElegantOTA
+  
   //WebSerial.begin(&server);
 
   
 }
 
 void loop(void) {
-  ArduinoOTA.handle();
+ // ArduinoOTA.handle();
   if((millis() - lastDTHRead) > DTH_READ_DELAY){
     h = dht.readHumidity();
     t = dht.readTemperature();
