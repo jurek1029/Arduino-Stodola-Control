@@ -3,12 +3,15 @@
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
+//#include <AsyncElegantOTA.h>
+
+//Debug option can be removed to see serial output connect to "/webserial"
+//#include <WebSerial.h>
+
 #include <ArduinoOTA.h>
 
-#include <DNSServer.h>
 
-
-#include "DHT.h"
+#include <DHT_U.h>
 #include "index.h"
 #include "loginPage.h"
 
@@ -28,7 +31,7 @@ String heatingState = "OFF";
 
 DHT dht(PIN_DTH, DHTTYPE);
 AsyncWebServer server(80);
-//ESP8266WebServer server(80);
+
 WiFiManager wifiManager;
 
 //Check if header is present and correct
@@ -89,7 +92,6 @@ void handleLoginValidate(AsyncWebServerRequest *request){
 
 //root page can be accessed only if authentication is ok
 void handleRoot(AsyncWebServerRequest *request) {
-  Serial.println("Enter handleRoot");
   String header;
   if (!is_authenticated(request)) {
     //request->redirect("/login");
@@ -138,39 +140,8 @@ void handleNotFound(AsyncWebServerRequest *request) {
   request->send(404, "text/plain", message);
 }
 
-void setupArduinoOTAUpdate(){
-  ArduinoOTA.onStart([]() {
-    Serial.println("Start");
-  });
-  ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd");
-  });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\n", (progress / (total / 100)));
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-    else if (error == OTA_END_ERROR) Serial.println("End Failed");
-  });
-  ArduinoOTA.begin();
-}
-
-
-void setup(void) {
-  Serial.begin(115200);
-  
-  // prepare Relay and turn off by default
-  pinMode(PIN_RELAY, OUTPUT);
-  digitalWrite(PIN_RELAY, 0);
-  val = 0;
-
-  dht.begin();
-
-  // Uncomment and run it once, if you want to erase all the stored information
+void setupWiFi(){
+// Uncomment and run it once, if you want to erase all the stored information
   //wifiManager.resetSettings();
   // set custom ip for portal
   //wifiManager.setAPConfig(IPAddress(10,0,1,1), IPAddress(10,0,1,1), IPAddress(255,255,255,0)); 
@@ -178,15 +149,13 @@ void setup(void) {
   wifiManager.autoConnect("AutoConnectAP");
 
   Serial.println("");
-  Serial.println("AsyncServer");
   Serial.print("Connected to ");
   Serial.println(wifiManager.getWiFiSSID(true));
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+}
 
-  setupArduinoOTAUpdate();
-
-
+void setupWebServer(){
   server.on("/", handleRoot);
   server.on("/login", handleLogin);
   server.on("/loginValidate", handleLoginValidate);
@@ -206,19 +175,68 @@ void setup(void) {
     }
     });
 
-
   server.onNotFound(handleNotFound);
-  //ask server to track these headers
-  //server.collectHeaders("User-Agent", "Cookie");
   server.begin();
   Serial.println("HTTP server started");
+}
+
+void setupOTA(){
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_FS
+      type = "filesystem";
+    }
+
+    // NOTE: if updating FS this would be the place to unmount FS using FS.end()
+    Serial.println("Start updating " + type);
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("Auth Failed");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("Begin Failed");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("Connect Failed");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("Receive Failed");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("End Failed");
+    }
+  });
+  ArduinoOTA.begin();
+}
+
+void setup(void) {
+  Serial.begin(115200);
+  
+  // prepare Relay and turn off by default
+  pinMode(PIN_RELAY, OUTPUT);
+  digitalWrite(PIN_RELAY, 0);
+  val = 0;
+
+  dht.begin();
+
+  setupWiFi();
+  setupOTA();
+  setupWebServer();
+
+  //AsyncElegantOTA.begin(&server);    // Start ElegantOTA
+  //WebSerial.begin(&server);
+
   
 }
 
 void loop(void) {
   ArduinoOTA.handle();
-  //server.handleClient();
-
   if((millis() - lastDTHRead) > DTH_READ_DELAY){
     h = dht.readHumidity();
     t = dht.readTemperature();
