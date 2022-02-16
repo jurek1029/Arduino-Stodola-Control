@@ -91,7 +91,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 			</div>
 		</div>
 	
-		<h1> <b>Stodo&#322;a Control Center OTA 0.2</b></h1>
+		<h1> <b>Stodo&#322;a Control Center</b></h1>
 		<br><br>
 		<div class="box">
 		Temperatura: <span id="temp">0</span>&deg;C <br>

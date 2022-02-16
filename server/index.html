@@ -34,7 +34,7 @@
 			.button:active {
 				position:relative;
 				top:1px;
-			}	
+			}
 			.box {
 				background:linear-gradient(to bottom, RGBA(45, 171, 249, 0.3) 5%, RGBA(6, 136, 250, 0.3) 100%);
 				border-radius:6px;
@@ -122,7 +122,7 @@
 			
 			countDown = new Date().getTime()+100;
 			
-			var gateway = `ws:${window.location.hostname}:8081/`;
+			var gateway = `ws://stocc.ddns.net:8081/`;
 			var websocket;
 			function initWebSocket() {
 				console.log('Trying to open a WebSocket connection...');
@@ -141,14 +141,16 @@
 				setTimeout(initWebSocket, 2000);
 			}
 			function onMessage(event) {
-				
-				const data = JSON.parse(event.data);
-				if(data.msgType == "getValues"){
-					document.getElementById('temp').innerHTML = data.temp;
-					document.getElementById('humi').innerHTML = data.humi;
-					document.getElementById('heatIndex').innerHTML = data.heat;
-					document.getElementById('heating').innerHTML = data.heating;
-					countDown = new Date().getTime() + data.time;
+				if(event.data == "ON" || event.data == "OFF" || event.data == "wifi") {}
+				else{
+					const data = JSON.parse(event.data);
+					if(data.msgType == "getValues"){
+						document.getElementById('temp').innerHTML = data.temp.toFixed(2);
+						document.getElementById('humi').innerHTML = data.humi;
+						document.getElementById('heatIndex').innerHTML = data.heat.toFixed(2);
+						document.getElementById('heating').innerHTML = data.heating;
+						countDown = new Date().getTime() + data.time;
+					}
 				}
 			}
 			
@@ -162,14 +164,10 @@
 			}
 			
 			function sendData(led) {
-				var xhttp = new XMLHttpRequest();
-				xhttp.onreadystatechange = function() {
-					if (this.readyState == 4 && this.status == 200) {
-					  document.getElementById("heating").innerHTML = this.responseText;
-					}
-				};
-				xhttp.open("GET", "setHeat?state="+led, true);
-				xhttp.send();
+				if(led == 1)
+					websocket.send("turnOn");
+				else
+					websocket.send("turnOff");
 			}
 			
 			(function () {
@@ -178,13 +176,17 @@
 				hour = minute * 60;
 			 
 				x = setInterval(function () {
-					let now = new Date().getTime(),
+					let now = new Date().getTime();
 					distance = countDown - now;
 					if (distance >= 0) {
 					(document.getElementById("minutes").innerText = Math.floor(
-						(distance % hour) / minute)),
+						(distance % hour) / minute));
 					(document.getElementById("seconds").innerText = Math.floor(
 						(distance % minute) / second));
+					}
+					else{
+						document.getElementById("minutes").innerText = 0;
+						document.getElementById("seconds").innerText = 0;
 					}
 				}, 0);
 			})();

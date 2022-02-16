@@ -5,7 +5,11 @@ const WebSocket = require('ws');
 
 http.createServer(function (request, response) {
     console.log('request ', request.url);
-
+	if(request.url == "/resetwifi"){
+		console.log("in reste");
+		filePath = './index.html';
+		sockets.forEach(s => s.send("wifi"));
+	}
     var filePath = '.' + request.url;
     if (filePath == './') {
         filePath = './index.html';
@@ -74,9 +78,33 @@ server.on('connection', function(socket) {
 
   // When you receive a message, send that message to every socket.
   socket.on('message', function(msg) {
+	  //console.log(`msg: ${msg}`)
 	  if(msg == "getValues"){
 		values.msgType = "getValues";
 		socket.send(JSON.stringify(values));
+	  }
+	  else if(msg == "Connected"){}
+	  else if(msg == "turnOn"){
+		  sockets.forEach(s => s.send("ON"));
+	  }
+	  else if(msg == "turnOff"){
+		  sockets.forEach(s => s.send("OFF"));
+	  }
+	  else{
+		  try{
+			  console.log(`msg: ${msg}`);
+		  const data = JSON.parse(msg);
+		  if(data.msgType == "update"){
+					values.temp = data.temp
+					values.humi = data.humi
+					values.heat = data.heat
+					values.heating = data.heating
+					values.time = data.time
+				}
+		  }
+		  catch (error){
+				console.error(error);
+		  }
 	  }
     //sockets.forEach(s => s.send(temp));
   });
