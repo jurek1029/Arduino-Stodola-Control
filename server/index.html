@@ -158,7 +158,7 @@
 			}
 			function onOpen(event) {
 				console.log('Connection opened');
-				setInterval(function() { getData(); }, 1500); //1500mSeconds update rate
+				//setInterval(function() { getData(); }, 1500); //1500mSeconds update rate
 			}
 
 			function onClose(event) {
@@ -176,7 +176,7 @@
 						document.getElementById('heating').innerHTML = data.heating;
 						countDown = new Date().getTime() + data.time;
 						
-						if(chartT.series[0].data.length > 100) {
+						if(chartT.series[0].data.length > 2000) {
 							chartT.series[0].addPoint([(new Date()).getTime(), data.temp], true, true, true);
 						} else {
 							chartT.series[0].addPoint([(new Date()).getTime(), data.temp], true, false, true);

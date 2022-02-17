@@ -101,6 +101,8 @@ server.on('connection', function(socket) {
 					values.heating = data.heating
 					values.time = data.time
 				}
+			values.msgType = "getValues";
+			sockets.forEach(s => s.send(JSON.stringify(values)));
 		  }
 		  catch (error){
 				console.error(error);
