@@ -2,9 +2,9 @@ var http = require('http');
 var fs = require('fs');
 var path = require('path');
 const WebSocket = require('ws');
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
-http.createServer(function (request, response) {
+var server = http.createServer(function (request, response) {
     console.log('request ', request.url);
 	if(request.url == "/resetwifi"){
 		console.log("in reste");
@@ -69,12 +69,13 @@ var values = {
 };
 
 
-const server = new WebSocket.Server({
-  port: 3000
+const wsServer = new WebSocket.Server({
+  //port: 3000
+  server: server
 });
 
 let sockets = [];
-server.on('connection', function(socket) {
+wsServer.on('connection', function(socket) {
   sockets.push(socket);
 
   // When you receive a message, send that message to every socket.
