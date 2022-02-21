@@ -1,11 +1,11 @@
 {
   "dependencies": {
+    "express": "^4.17.3",
     "ws": "^8.4.2"
   },
   "name": "server",
   "version": "1.0.0",
   "main": "main.js",
-  "devDependencies": {},
   "scripts": {
     "start": "node main.js",
     "test": "echo \"Error: no test specified\" && exit 1"

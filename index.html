@@ -148,7 +148,8 @@
 			countDown = new Date().getTime()+100;
 			
 			//var gateway = `ws://stocc.ddns.net:8081/`;
-			var gateway = `wss://stodola-control-center.herokuapp.com:5000/`;
+			//var gateway = `wss://stodola-control-center.herokuapp.com:5000/`;
+			var gateway = location.origin.replace(/^http/, 'ws')
 			var websocket;
 			function initWebSocket() {
 				console.log('Trying to open a WebSocket connection...');
