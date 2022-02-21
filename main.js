@@ -2,6 +2,7 @@ var http = require('http');
 var fs = require('fs');
 var path = require('path');
 const WebSocket = require('ws');
+const PORT = process.env.PORT || 3000;
 
 http.createServer(function (request, response) {
     console.log('request ', request.url);
@@ -55,7 +56,7 @@ http.createServer(function (request, response) {
         }
     });
 
-}).listen(80);
+}).listen(PORT);
 console.log('Server running at http://127.0.0.1:80/');
 
 var values = {
@@ -69,7 +70,7 @@ var values = {
 
 
 const server = new WebSocket.Server({
-  port: 8081
+  port: 3000
 });
 
 let sockets = [];
