@@ -4,17 +4,84 @@ var path = require('path');
 const WebSocket = require('ws');
 const PORT = process.env.PORT || 5000;
 
+const COOKIE_HEADER = "STODOLA_LOGIN";
+
+function parseCookies (request) {
+    const list = {};
+    const cookieHeader = request.headers?.cookie;
+    if (!cookieHeader) return list;
+
+    cookieHeader.split(`;`).forEach(function(cookie) {
+        let [ name, ...rest] = cookie.split(`=`);
+        name = name?.trim();
+        if (!name) return;
+        const value = rest.join(`=`).trim();
+        if (!value) return;
+        list[name] = decodeURIComponent(value);
+    });
+
+    return list;
+}
+
 var server = http.createServer(function (request, response) {
     console.log('request ', request.url);
+	
+	if(request.method == 'POST'){
+		var body = '';
+        request.on('data', function (data) {
+            body += data;
+        });
+        request.on('end', function () {
+            try {
+				console.log(body);
+				var post = JSON.parse(body);
+				console.log(post);
+                if("user" in post && "psw" in post){
+				    if((post["user"] == "kuba" || post["user"] == "pawel") && post["psw"] == "admin"){
+					    response.writeHead(200, {
+							"Set-Cookie": COOKIE_HEADER+"=1",
+							"Content-Type": "text/plain"
+						});
+					    response.end();
+				    } 
+				    else{
+					    response.writeHead(200, {
+							"Set-Cookie": COOKIE_HEADER+"=0",
+							"Content-Type": "text/plain"
+						});
+						response.write('failed');
+					    response.end();
+				    }
+			    } 
+                return;
+            }catch (err){
+				console.log(err);
+                response.writeHead(500, {"Content-Type": "text/plain"});
+                response.write("Bad Post Data.  Is your data a proper JSON?\n");
+                response.end();
+                return;
+            }
+        });
+	}
+	
 	if(request.url == "/resetwifi"){
 		console.log("in reste");
-		filePath = './index.html';
+		//filePath = './index.html';
 		sockets.forEach(s => s.send("wifi"));
 	}
-    var filePath = '.' + request.url;
+	
+	var filePath = '.' + request.url;
     if (filePath == './') {
-        filePath = './index.html';
+        filePath = './loginPage.html';
     }
+	
+	const cookies = parseCookies(request);
+	console.log(cookies);
+	if( COOKIE_HEADER in cookies){
+		if(cookies[COOKIE_HEADER] == "1"){
+			filePath = './index.html';
+		}
+	}
 
     var extname = String(path.extname(filePath)).toLowerCase();
     var mimeTypes = {
@@ -57,7 +124,11 @@ var server = http.createServer(function (request, response) {
     });
 
 }).listen(PORT);
+
+//server.listen(PORT);
 console.log('Server running at http://127.0.0.1:80/');
+
+
 
 var values = {
 	msgType: "default",
