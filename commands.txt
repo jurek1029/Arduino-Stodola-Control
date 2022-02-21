@@ -1,0 +1,3 @@
+git push heroku --no-verify # for lfs no check
+git push heroku heroku-host:main # to push from other branch then main to heroku main
+heroku ps:scale web=1

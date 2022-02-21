@@ -55,8 +55,8 @@ http.createServer(function (request, response) {
         }
     });
 
-}).listen(42069);
-console.log('Server running at http://127.0.0.1:42069/');
+}).listen(80);
+console.log('Server running at http://127.0.0.1:80/');
 
 var values = {
 	msgType: "default",
