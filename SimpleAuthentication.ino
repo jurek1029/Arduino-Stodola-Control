@@ -32,8 +32,10 @@ const char* ssid     = "Trollol";
 const char* password = "asiaKUBAmartyna";
 
 //char* host = "192.168.1.13";  //replace this ip address with the ip address of your Node.Js server
-char* host = "stocc.ddns.net";  //replace this ip address with the ip address of your Node.Js server
-const int espport= 8081;
+//char* host = "stocc.ddns.net";  //replace this ip address with the ip address of your Node.Js server
+char* host = "stodola-control-center.herokuapp.com";  //replace this ip address with the ip address of your Node.Js server
+//const int espport=8081;
+const int espport=443;
 
 WiFiManager wifiManager;
 
@@ -77,7 +79,7 @@ void setupWiFi(){
 
 void setupWebSocketConnction(){
   // server address, port and URL
-  webSocket.begin(host, espport, "/");
+  webSocket.beginSSL(host, espport, "/");
 
   // event handler
   webSocket.onEvent(webSocketEvent);
